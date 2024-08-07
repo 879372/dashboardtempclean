@@ -42,7 +42,7 @@ lock = threading.Lock()
                      
 def obter_dados_firebird():
         conn = fdb.connect(
-            host='localhost', database='C:/Sistema/Dados/DADOS.FDB',
+            host='localhost', database='C:/Users/4OFFICE/Downloads/DADOS.FDB',
             user='SYSDBA', password='masterkey',
             charset='ANSI'
         )
@@ -150,11 +150,11 @@ def year_filter(year):
     return mask
 
 def month_filter(month):
-    if month == 0:
-        mask = df['MES'].isin([datetime.datetime.now().month])
+    if isinstance(month, list):
+        return df['MES'].isin(month)
     else:
-       mask = df['MES'].isin([month])
-    return mask
+        return df['MES'] == month
+
 
 def year_month_filter(year, month):
     if year == 0 and month == 0:
@@ -292,8 +292,9 @@ main_layout = dbc.Container(children=[
                             dcc.Dropdown(
                                 id="radio-month",
                                 options=[],
-                                value=mes_atual if mes_atual in df['MES'].unique() else 0,
-                                
+                                value=[],
+                                multi=True,
+                                clearable=False
 
                             ),                       
                             html.Div(id='cfop-select', style={'text-align': 'center', 'margin-top': '10px'}, className='dbc'),
@@ -488,6 +489,7 @@ def update_graph1e2(month, year, team, cfop, vendedor, toggle, n_intervals):
 
             mask_year = year_filter(year)
             mask_month = month_filter(month)
+            print(mask_month)
             mask_team = team_filter(team)
             mask_cfop = cfop_filter(cfop)
             mask_vendedor = vendedor_filter(vendedor)  # Aplicando o filtro de vendedor
@@ -540,9 +542,7 @@ def update_graph3( month, year, team, cfop, vendedor, toggle, n_intervals):
             mask_team = team_filter(team)
             mask_cfop = cfop_filter(cfop)
             mask_vendedor = vendedor_filter(vendedor)  # Aplicando o filtro de vendedor
-            print(mask_cfop)
             df_filtered = df.loc[mask_year & mask_month & mask_team & mask_cfop & mask_vendedor]
-            print(df_filtered)
 
             #Grafico 3
             df_3 = df_filtered.groupby('DIA')['VALOR_PAGO'].sum().reset_index()
@@ -919,8 +919,6 @@ def update_graph13e14(month, year, team, cfop, vendedor, toggle, n_intervals):
             mask_vendedor = vendedor_filter(vendedor)  # Aplicando o filtro de vendedor
             df_filtered = df.loc[mask_year & mask_month & mask_team & mask_cfop & mask_vendedor]
 
-            print(df_filtered)
-
             # Gráfico 1: com donut hole
             df_1 = df_filtered.groupby(['CLIENTE'])['VALOR_PAGO'].sum().reset_index()
             df_1 = df_1.sort_values(by='VALOR_PAGO', ascending=False).head(10)
@@ -999,7 +997,6 @@ def update_vendedor_options(n_intervals):
 def update_radio_cfop(n_intervals):
     unique_cfop = df['CFOP'].unique()
     options = [{'label': status, 'value': status} for status in unique_cfop]
-    print(options)
     options.append({'label': 'TODOS', 'value': 'Todos'})
     default_value = [5102, 6102, 5403, 5405]
     return options , default_value
@@ -1015,7 +1012,7 @@ def check_login(n_clicks, username, password):
     
     if n_clicks is not None:
         conexao = fdb.connect(
-            host='localhost', database='C:/Sistema/Dados/DADOS.FDB',
+            host='localhost', database='C:/Users/4OFFICE/Downloads/DADOS.FDB',
             user='SYSDBA', password='masterkey',
             charset='ANSI'
         )
@@ -1029,8 +1026,6 @@ def check_login(n_clicks, username, password):
         cursor.execute(sql, (username.upper().strip(), hashlib.md5(password.encode()).hexdigest()))
         result = cursor.fetchone()
         cursor.close()
-        print(password)
-        print(hashlib.md5(password.encode()).hexdigest())
         if result:  # Se a consulta retornar algo
             authenticated = True
             return dcc.Location(pathname='/home', id='main_layout_redirect')
